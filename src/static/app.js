@@ -88,17 +88,39 @@ document.addEventListener("DOMContentLoaded", () => {
           btn.addEventListener("click", async () => {
             const activity = btn.dataset.activity;
             const email = btn.dataset.email;
+            messageDiv.textContent = "";
             try {
               const res = await fetch(
                 `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
                 { method: "DELETE" }
               );
-              if (res.ok) {
-                activitiesList.innerHTML = "";
-                activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
-                fetchActivities();
+
+              if (!res.ok) {
+                let errorMessage = "Failed to remove participant.";
+                const errorText = await res.text();
+
+                if (errorText) {
+                  try {
+                    const errorData = JSON.parse(errorText);
+                    if (errorData && typeof errorData.detail === "string" && errorData.detail.trim()) {
+                      errorMessage = errorData.detail;
+                    } else {
+                      errorMessage = errorText;
+                    }
+                  } catch (_) {
+                    errorMessage = errorText;
+                  }
+                }
+
+                messageDiv.textContent = errorMessage;
+                return;
               }
+
+              activitiesList.innerHTML = "";
+              activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
+              await fetchActivities();
             } catch (err) {
+              messageDiv.textContent = "Failed to remove participant. Please try again.";
               console.error("Error removing participant:", err);
             }
           });
